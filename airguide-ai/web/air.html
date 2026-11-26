@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AirGuide – India Air Quality &amp; Family Safety</title>
+  <meta name="description" content="Hourly CPCB-based air quality for 20 Indian cities with employee, family and children advisories.">
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/aq.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+</head>
+<body class="aq">
+  <a class="skip" href="#main-content">Skip to content</a>
+
+  <header role="banner">
+    <div class="header-content">
+      <div class="brand">
+        <h1>AirGuide <span>India Air Quality</span></h1>
+        <p class="tagline">CPCB AQI &bull; 20 cities &bull; hourly updates &bull; employee &amp; family safety</p>
+      </div>
+      <div class="header-controls">
+        <button id="refresh-aqi" type="button" class="btn-control" aria-label="Refresh CPCB air quality data">&#8635; Refresh CPCB AQI</button>
+        <a class="btn-control" href="/">Chat assistant</a>
+      </div>
+    </div>
+    <nav id="nav" class="aq-nav" aria-label="Air quality sections">
+      <a href="#dashboard">Overview</a>
+      <a href="#map">Live India Map</a>
+      <a href="#forecast">Forecast</a>
+      <a href="#cities">City Leaderboard</a>
+      <a href="#employee">Employee Advisory</a>
+      <a href="#family">Family &amp; Children Safety</a>
+      <a href="#activities">Alternative Activities</a>
+      <a href="#history">Pollution History</a>
+      <a href="#alerts">Notifications</a>
+      <a href="#escape">Where Can I Breathe?</a>
+      <a href="#lens">Smog Lens</a>
+      <a href="#admin">Admin Settings</a>
+    </nav>
+  </header>
+
+  <main id="main-content" role="main">
+    <p id="banner" class="aq-banner" role="status" aria-live="polite" aria-atomic="true"></p>
+
+    <section id="dashboard" data-view aria-labelledby="h-dashboard">
+      <h2 id="h-dashboard">Air Quality Dashboard</h2>
+      <div id="morning" class="panel morning" aria-labelledby="h-morning">
+        <div class="hd">
+          <h3 id="h-morning">Today&rsquo;s Breathability Card</h3>
+          <label class="inline-label">City <select id="morning-city"></select></label>
+        </div>
+        <div id="morning-body" aria-live="polite" aria-atomic="true"></div>
+        <div class="inline"><button id="morning-share" type="button" class="btn" hidden>Share Family Card (PNG)</button></div>
+      </div>
+      <div id="kpis" class="kpi-grid"></div>
+      <div class="chart-grid">
+        <figure class="chart-card"><figcaption>National hourly AQI trend (average of cities, last 48 h)</figcaption><canvas id="c-national" role="img" aria-label="National hourly AQI trend"></canvas></figure>
+        <figure class="chart-card"><figcaption>City-wise pollution comparison (current AQI)</figcaption><canvas id="c-compare" role="img" aria-label="Current AQI by city"></canvas></figure>
+      </div>
+      <p class="note" id="method-note"></p>
+      <div class="quality-strip" id="quality-strip" aria-live="polite" aria-atomic="true"><span>Checking data quality…</span></div>
+    </section>
+
+    <section id="map" data-view hidden aria-labelledby="h-map">
+      <h2 id="h-map">Live India Air Quality Map</h2>
+      <p class="note">Station and city markers use the latest stored readings. City markers are not street-level measurements.</p>
+      <div class="toolbar"><label>Find city <input id="map-city-search" type="search" list="map-city-options" placeholder="Search an Indian city"><datalist id="map-city-options"></datalist></label><button id="map-fit" class="btn secondary" type="button">Show all monitored cities</button></div>
+      <div id="india-map" class="india-map" role="application" aria-label="Interactive map of Indian air quality monitoring locations"></div>
+      <div class="map-legend"><span><i class="dot good"></i> Good</span><span><i class="dot fair"></i> Satisfactory</span><span><i class="dot moderate"></i> Moderate</span><span><i class="dot poor"></i> Poor</span><span><i class="dot verypoor"></i> Very Poor</span><span><i class="dot severe"></i> Severe</span></div>
+      <div class="panel" id="station-panel"><h3>Monitoring stations</h3><p class="note">Select a city marker to inspect its available station readings.</p><div id="station-results"></div></div>
+    </section>
+
+    <section id="forecast" data-view hidden aria-labelledby="h-forecast">
+      <h2 id="h-forecast">24–72 Hour Air Quality Forecast</h2>
+      <div class="toolbar"><label>City <select id="forecast-city"></select></label><label>Forecast period <select id="forecast-hours"><option value="24">Next 24 hours</option><option value="48">Next 48 hours</option><option value="72">Next 72 hours</option></select></label></div>
+      <p class="note" id="forecast-source">Forecasts are model estimates, not observed CPCB readings.</p>
+      <div class="chart-card"><canvas id="c-forecast" role="img" aria-label="Hourly predicted AQI for selected city"></canvas></div>
+      <div id="forecast-summary" class="forecast-summary" aria-live="polite" aria-atomic="true"></div>
+    </section>
+
+    <section id="cities" data-view hidden aria-labelledby="h-cities">
+      <h2 id="h-cities">City-wise Pollution</h2>
+      <div class="toolbar">
+        <label>Search city <input id="f-search" type="search" list="map-city-options" maxlength="40" placeholder="e.g. Pune"></label>
+        <label>State <select id="f-state"><option value="">All states</option></select></label>
+        <label>Sort <select id="f-sort">
+          <option value="high">Highest AQI first</option>
+          <option value="low">Lowest AQI first</option>
+          <option value="name">City name</option>
+        </select></label>
+      </div>
+      <div class="table-wrap">
+        <table id="city-table">
+          <caption class="sr-only">Current air quality by city</caption>
+          <thead><tr>
+            <th scope="col">City</th><th scope="col">State</th><th scope="col">AQI</th>
+            <th scope="col">PM2.5</th><th scope="col">PM10</th><th scope="col">NO2</th>
+            <th scope="col">Category</th><th scope="col">Source signature</th><th scope="col">Health risk</th><th scope="col">Last updated (IST)</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="note">PM2.5, PM10 and NO2 in &micro;g/m&sup3;. &ldquo;Data unavailable&rdquo; means no reading has been collected for that value; nothing is estimated.</p>
+    </section>
+
+    <section id="employee" data-view hidden aria-labelledby="h-employee">
+      <h2 id="h-employee">Employee Air Quality Advisory</h2>
+      <div class="panel">
+        <h3>My locations</h3>
+        <p class="note">Pick the cities that matter to you. Only city names are stored (no medical or personal details). <button id="me-delete" type="button" class="link-btn">Delete my profile</button></p>
+        <div id="prefs-form" class="toolbar"></div>
+        <div id="prefs-list" class="pref-grid"></div>
+      </div>
+      <div class="toolbar"><label>Show advisory for <select id="adv-city-emp"></select></label></div>
+      <div id="adv-employee"></div>
+    </section>
+
+    <section id="family" data-view hidden aria-labelledby="h-family">
+      <h2 id="h-family">Family &amp; Children Air Quality Protection</h2>
+      <div class="toolbar"><label>Show advice for <select id="adv-city-fam"></select></label>
+        <label>Health profile <select id="health-profile"><option value="general">General</option><option value="child">Child</option><option value="older">Older adult</option><option value="asthma">Asthma / respiratory sensitivity</option><option value="copd">COPD</option><option value="heart">Heart condition</option><option value="pregnancy">Pregnancy</option></select></label>
+        <label>Planned activity <select id="health-activity"><option value="routine">Daily routine</option><option value="school">School commute</option><option value="walk">Walking</option><option value="run">Running / cycling</option><option value="sports">Outdoor sports</option></select></label>
+      </div>
+      <p class="note">Health profile choices are used only in this browser session and are not saved to your account.</p>
+      <div id="health-personalised" class="health-personalised" aria-live="polite" aria-atomic="true"></div>
+      <div id="adv-family"></div>
+      <p class="note">General wellbeing guidance only. This site does not diagnose conditions or recommend medicines. If you or a family member feels unwell, seek medical advice.</p>
+    </section>
+
+    <section id="activities" data-view hidden aria-labelledby="h-activities">
+      <h2 id="h-activities">What Can You Do Instead?</h2>
+      <div class="toolbar">
+        <label>City <select id="adv-city-act"></select></label>
+        <label>Audience <select id="act-aud">
+          <option value="">Everyone</option><option value="employee">Employee</option>
+          <option value="child">Child</option><option value="family">Family</option>
+        </select></label>
+      </div>
+      <div class="table-wrap"><table id="act-table">
+        <caption class="sr-only">Outdoor activities and safer alternatives for the selected city</caption>
+        <thead><tr><th scope="col">Activity</th><th scope="col">Pollution risk</th><th scope="col">Recommended alternative</th><th scope="col">Why</th><th scope="col">For</th></tr></thead>
+        <tbody></tbody></table></div>
+    </section>
+
+    <section id="history" data-view hidden aria-labelledby="h-history">
+      <h2 id="h-history">Pollution History</h2>
+      <div class="toolbar">
+        <label>City <select id="hist-city"></select></label>
+        <button id="history-csv" type="button" class="btn secondary">Download CSV</button><button id="history-pdf" type="button" class="btn secondary">Print / Save PDF</button>
+        <label>Period <select id="hist-hours">
+          <option value="24">Last 24 hours</option><option value="72" selected>Last 3 days</option>
+          <option value="168">Last 7 days</option><option value="720">Last 30 days</option>
+        </select></label>
+      </div>
+      <p class="note" id="hist-source"></p>
+      <div class="chart-grid">
+        <figure class="chart-card"><figcaption>Hourly AQI trend</figcaption><canvas id="c-hourly" role="img" aria-label="Hourly AQI trend"></canvas></figure>
+        <figure class="chart-card"><figcaption>Daily AQI comparison (average and maximum)</figcaption><canvas id="c-daily" role="img" aria-label="Daily AQI comparison"></canvas></figure>
+        <figure class="chart-card"><figcaption>PM2.5 and PM10 trend (&micro;g/m&sup3;)</figcaption><canvas id="c-pm" role="img" aria-label="PM2.5 and PM10 trend"></canvas></figure>
+        <figure class="chart-card"><figcaption>Historical pollutant trend (NO2, SO2, O3 in &micro;g/m&sup3;)</figcaption><canvas id="c-gases" role="img" aria-label="NO2, SO2 and O3 trend"></canvas></figure>
+      </div>
+    </section>
+
+    <section id="alerts" data-view hidden aria-labelledby="h-alerts">
+      <h2 id="h-alerts">Notifications</h2>
+      <p class="note" id="alert-rules"></p>
+      <div class="toolbar"><label><input id="alerts-mine" type="checkbox"> Only my locations</label><label>Notify at AQI <select id="browser-alert-threshold"><option value="100">100+</option><option value="150" selected>150+</option><option value="200">200+</option><option value="300">300+</option></select></label><button id="enable-browser-alerts" class="btn" type="button">Enable browser alerts</button><span id="browser-alert-status" class="note" aria-live="polite" aria-atomic="true"></span></div>
+      <ul id="alert-list" class="alert-list"></ul>
+    </section>
+
+    <section id="escape" data-view hidden aria-labelledby="h-escape">
+      <h2 id="h-escape">Where Can I Breathe?</h2>
+      <p class="note">Compares your city with the other monitored cities right now. Distances are straight-line.</p>
+      <div class="toolbar"><label>My city <select id="esc-city"></select></label></div>
+      <div id="esc-body" aria-live="polite" aria-atomic="true"></div>
+    </section>
+
+    <section id="lens" data-view hidden aria-labelledby="h-lens">
+      <h2 id="h-lens">See the Air (Smog Lens)</h2>
+      <p class="note">An illustration of how today&rsquo;s PM2.5 could change a view. It runs entirely on your device: photos and camera frames are never uploaded or stored.</p>
+      <div class="toolbar">
+        <label>City <select id="lens-city"></select></label>
+        <label>Your photo <input id="lens-file" type="file" accept="image/*"></label>
+        <button id="lens-cam" type="button" class="btn secondary">Use camera</button>
+        <button id="lens-stop" type="button" class="btn danger" hidden>Stop camera</button>
+        <button id="lens-preset" type="button" class="btn secondary">Sample skyline</button>
+      </div>
+      <div class="lens-wrap">
+        <canvas id="lens-canvas" width="960" height="540" role="img" aria-label="Side-by-side comparison of clean air and the selected city's air"></canvas>
+        <input id="lens-slider" type="range" min="0" max="100" value="50" aria-label="Slide to compare clean air with the city's live air">
+      </div>
+      <p id="lens-caption" class="note" aria-live="polite" aria-atomic="true"></p>
+    </section>
+
+    <section id="admin" data-view hidden aria-labelledby="h-admin">
+      <h2 id="h-admin">Admin Settings</h2>
+      <div id="admin-body"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <p>AirGuide India &bull; CPCB National AQI categories &bull; Data: Open-Meteo (CAMS model) and OpenAQ stations when configured &bull; General guidance, not medical advice</p>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+  <script src="/static/aq-charts.js" defer></script>
+  <script src="/static/aq.js" defer></script>
+</body>
+</html>

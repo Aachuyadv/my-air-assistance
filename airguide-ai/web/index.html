@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AirGuide – Urban Air Quality Assistant (Challenge 6)</title>
+  <meta name="description" content="Friendly India-specific air-quality guidance using CPCB station readings, CPCB AQI categories and health-aware recommendations.">
+  <!-- Preload critical stylesheet for performance -->
+  <link rel="preload" href="/static/style.css" as="style">
+  <link rel="stylesheet" href="/static/style.css">
+  <meta name="theme-color" content="#0369a1">
+</head>
+<body>
+  <!-- Accessibility: Skip to main content for keyboard/screen-reader users -->
+  <a class="skip" href="#message">Skip to message input</a>
+
+  <header role="banner">
+    <div class="header-content">
+      <div class="brand">
+        <h1>AirGuide <span>Assistant</span></h1>
+        <p class="tagline">Challenge 6: India AQI &bull; Friendly, health-aware air-quality guidance</p>
+      </div>
+      <div class="header-controls">
+        <a class="btn-control" href="/air" aria-label="Open India Air Quality Dashboard">India Air Quality</a>
+        <button id="tts-btn" type="button" class="btn-control" aria-pressed="false" aria-label="Toggle speech audio narration for voice accessibility">
+          <span aria-hidden="true">&#128266;</span> Voice: <span id="tts-status">Off</span>
+        </button>
+        <button id="reset-btn" type="button" class="btn-control" aria-label="Reset conversation history and state">
+          <span aria-hidden="true">&#8635;</span> Reset
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" role="main">
+    <!-- Live Air Quality & Engine Status Banner -->
+    <section aria-labelledby="status-h" class="status-panel">
+      <h2 id="status-h" class="sr-only">Current Air Quality and System Status</h2>
+      <div class="status-grid">
+        <div class="status-card">
+          <span class="card-label" id="aqi-card-label">Current Indian AQI</span>
+          <!-- aria-labelledby + aria-live gives screen readers both the label and live updates -->
+          <p id="status" class="badge badge-none" role="status" aria-live="polite" aria-labelledby="aqi-card-label">No reading yet</p>
+        </div>
+        <div class="status-card">
+          <span class="card-label" id="engine-card-label">Active Logic Engine</span>
+          <p id="engine-badge" class="engine-badge" aria-labelledby="engine-card-label">Deterministic Offline Logic (Zero-LLM)</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Action Scenario Chips -->
+    <section aria-labelledby="chips-h" class="quick-scenarios">
+      <h2 id="chips-h" class="sr-only">Quick Test Scenarios</h2>
+      <span class="chips-label" id="chips-lbl">Try quick scenarios:</span>
+      <div class="chips-group" role="group" aria-labelledby="chips-lbl">
+        <button type="button" class="chip" data-prompt="What is the air quality like in Delhi?" aria-label="Scenario: Check live air quality in Delhi">📍 Delhi Air (Live)</button>
+        <button type="button" class="chip" data-prompt="AQI is 165 in Mumbai, I have asthma and want to go for a run" aria-label="Scenario: Running with asthma in AQI 165">🏃 Run with Asthma</button>
+        <button type="button" class="chip" data-prompt="AQI is 220, taking my 5-year-old child to school" aria-label="Scenario: Child commute in hazardous AQI 220">👶 Child Commute (AQI 220)</button>
+        <button type="button" class="chip" data-prompt="AQI is 45 in Bengaluru, can I walk outside?" aria-label="Scenario: Outdoor walk on a good air day">🌳 Clear Day Walk</button>
+        <button type="button" class="chip" data-prompt="AQI is 180, staying indoors today" aria-label="Scenario: Indoor air quality and filtration tips">🏠 Indoor Air Protection</button>
+      </div>
+    </section>
+
+    <!-- Interactive Chat Window -->
+    <section aria-labelledby="chat-h" class="chat-section">
+      <h2 id="chat-h" class="sr-only">Conversation History</h2>
+
+      <!-- Accessible loading status announcement for screen readers (atomic so the full message is read) -->
+      <div id="loading-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+      <div id="log" role="log" aria-live="polite" aria-relevant="additions" tabindex="0"
+           aria-label="Chat messages history" aria-busy="false">
+        <div class="msg bot">
+          <span class="who">AirGuide:</span>
+          <div class="bubble">
+            <p>Welcome! I'm your <strong>Urban Air Quality Assistant</strong>. Hi! I'm AirGuide. Tell me your Indian city, ask about pollution and health, or share your outdoor plans. I'll help you understand the latest available air quality and practical precautions.</p>
+          </div>
+        </div>
+      </div>
+
+      <form id="form" autocomplete="off" aria-label="Send a message to AirGuide" novalidate>
+        <label for="message">Your Message</label>
+        <div class="row">
+          <input id="message" name="message" type="text" maxlength="500" required
+                 aria-required="true"
+                 aria-describedby="input-desc"
+                 placeholder="Try: Delhi AQI, I have asthma, can I go for a walk?">
+          <label class="sr-only" for="voice-language">Voice language</label>
+          <select id="voice-language" aria-label="Voice input language">
+            <option value="en-IN">English</option>
+            <option value="hi-IN">हिन्दी</option>
+          </select>
+          <button id="mic-btn" type="button" class="btn-control" aria-label="Start voice input" aria-pressed="false">🎙 Speak</button>
+          <button id="send-btn" type="submit" aria-label="Send message to AirGuide">Send</button>
+        </div>
+        <span id="input-desc" class="sr-only">Type or speak your city name or AQI reading and any planned outdoor activity</span>
+        <span id="voice-status" class="note" role="status" aria-live="polite" aria-atomic="true"></span>
+      </form>
+
+      <div class="disclaimer-bar" role="note" aria-label="Health and safety guidance notice">
+        <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+        <p class="hint"><strong>Safety Notice:</strong> General wellbeing guidance only; not a medical diagnosis. Air-quality readings depend on the monitoring source and update time. If experiencing severe symptoms (chest pain, shortness of breath), seek emergency medical care immediately.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <p>AirGuide India Air Quality Assistant &bull; CPCB AQI methodology &bull; Keyboard and screen-reader support</p>
+  </footer>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

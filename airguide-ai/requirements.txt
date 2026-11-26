@@ -1,0 +1,2 @@
+# Zero external runtime dependencies required.
+# Pure Python standard library (3.10+).
